@@ -17,7 +17,8 @@
       <td>{% if files[key] %}{{ files[key] }}{% else %}<span class="badge red">未找到</span>{% endif %}</td>
       <td class="muted">{{ {'responsibility':'责任清单 → 项目跟踪','capability':'企业场景能力 → 企业库',
         'scenarios25':'南湾25场景 → 场景库','reserve':'通用场景 → 储备库',
-        'profiles':'深度画像 → 企业库（合并）'}[key] }}</td>
+        'profiles':'深度画像 → 企业库（合并）','biz_info':'工商信息 → 企业库（注册资本/员工/经营异常）',
+	        'policies':'惠企政策 → 政策库（含申报条款）'}[key] }}</td>
     </tr>
     {% endfor %}
   </table>
@@ -48,7 +49,9 @@
             'capability': '同一家企业有多条业务线时可登记多行，导入时自动合并为一家',
             'scenarios25': '常规版型，表头在第1行',
             'reserve': '常规版型，表头在第1行；与文件3重名的场景会自动互链',
-            'profiles': '常规版型，表头在第1行；按企业名归并到企业库'}[key] }}
+            'profiles': '常规版型，表头在第1行；按企业名归并到企业库',
+	            'biz_info': '常规版型，表头在第1行；按企业名归并到企业库',
+	            'policies': '同一政策多条条款时序号只填首行，延续行留空即可'}[key] }}
       </td>
     </tr>
     {% endfor %}
@@ -71,6 +74,10 @@
           计划落地场景未能关联场景库 {{ v.planned_scene_unmatched }} 处
         {% elif k == 'linked_scenarios' %}
           {{ v }}{% if v is number %} 对{% endif %}
+        {% elif k == 'biz_info' %}
+          更新 {{ v.rows }} 家企业工商信息
+        {% elif k == 'policies' %}
+          导入 {{ v.rows }} 条政策 · {{ v.clauses }} 条申报条款
         {% else %}
           处理 {{ v.rows }} 行（新增 {{ v.new }}，更新 {{ v.updated }}
           {%- if v.merged_dupes %}，合并同企业多行 {{ v.merged_dupes }} 行{% endif %}）
@@ -83,7 +90,7 @@
       <td>
         企业 <b>{{ report.totals.enterprises }}</b> 家（其中缺画像 {{ report.totals.enterprises_no_profile }} 家）·
         南湾25场景 <b>{{ report.totals.scenarios_25 }}</b> · 储备场景 <b>{{ report.totals.scenarios_reserve }}</b> ·
-        项目 <b>{{ report.totals.projects }}</b>
+        项目 <b>{{ report.totals.projects }}</b> · 政策 <b>{{ report.totals.policies }}</b> 条（条款 <b>{{ report.totals.policy_clauses }}</b>）
       </td>
     </tr>
   </table>

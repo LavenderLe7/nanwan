@@ -1,4 +1,4 @@
-"""5 张源 Excel → SQLite 导入器。
+"""7 张源 Excel → SQLite 导入器。
 
 导入策略：按自然键 upsert（企业=name_norm，场景=name+source，项目=企业+标题前30字），
 重导不产生重复行，也不覆盖系统内人工维护的 status 字段。
@@ -26,6 +26,7 @@ FILE_PREFIXES = {
     'reserve': '4 ',
     'profiles': '5 ',
     'biz_info': '6 ',
+    'policies': '7 ',
 }
 EXPECTED_HEADERS = {
     'responsibility': ['序号', '公司名称', '企业与产品简介', '场景能力', '类别',
@@ -35,11 +36,13 @@ EXPECTED_HEADERS = {
     'reserve': ['序号', '应用领域', '场景名称', '场景简介', '主要技术', '参考案例', '潜在企业及产品'],
     'profiles': ['企业名称', '核心定位', '主营业务', '核心产品', '核心技术', '资质与荣誉', '典型客户/案例'],
     'biz_info': ['企业名称', '注册资本（万元）', '员工人数', '近一年营收（万元）', '经营异常'],
+    'policies': ['序号', '政策名称', '级别', '类别', '扶持方式', '扶持金额', '申报截止日期', '条款类型', '条款内容', '来源链接'],
 }
 FILE_LABELS = {
     'responsibility': '文件1 责任清单', 'capability': '文件2 能力清单',
     'scenarios25': '文件3 南湾25场景', 'reserve': '文件4 储备库', 'profiles': '文件5 深度画像',
     'biz_info': '文件6 企业工商信息',
+    'policies': '文件7 惠企政策种子数据',
 }
 
 
@@ -330,6 +333,69 @@ def import_biz_info(conn, report, path):
     report['biz_info'] = {'rows': n}
 
 
+def import_policies(conn, report, path):
+    """文件7：惠企政策种子数据 → policies + policy_clauses。按政策名称 upsert。"""
+    rows = _read_rows(path, 'policies')
+    policy_list = []
+    current = None
+    for r in rows:
+        if not r or all(v is None for v in r):
+            continue
+        seq = r[0]
+        # 有序号 → 新政策
+        if seq is not None:
+            if current is not None:
+                policy_list.append(current)
+            current = {
+                'name': (r[1] or '').strip(),
+                'level': (r[2] or '').strip(),
+                'category': (r[3] or '').strip(),
+                'support_type': (r[4] or '').strip(),
+                'amount_text': (r[5] or '').strip(),
+                'deadline': (r[6] or '').strip(),
+                'source_url': (r[9] or '').strip(),
+                'clauses': [],
+            }
+        # 无序号但 current 存在 → 该行的条款数据
+        clause_type = (r[7] or '').strip()
+        clause_content = (r[8] or '').strip()
+        if current is not None and clause_type and clause_content:
+            current['clauses'].append((clause_type, clause_content))
+    if current is not None:
+        policy_list.append(current)
+
+    n = 0
+    for p in policy_list:
+        if not p['name']:
+            continue
+        existing = db.q1(conn, 'SELECT id FROM policies WHERE name=?', (p['name'],))
+        if existing:
+            pid = existing['id']
+            conn.execute(
+                "UPDATE policies SET level=?, category=?, support_type=?, amount_text=?, "
+                "deadline=?, source_url=?, updated_at=datetime('now','localtime') WHERE id=?",
+                (p['level'], p['category'], p['support_type'], p['amount_text'],
+                 p['deadline'], p['source_url'], pid),
+            )
+        else:
+            cur = conn.execute(
+                "INSERT INTO policies(name, level, category, support_type, amount_text, "
+                "deadline, source_url, status) VALUES(?,?,?,?,?,?,?,'已发布')",
+                (p['name'], p['level'], p['category'], p['support_type'],
+                 p['amount_text'], p['deadline'], p['source_url']),
+            )
+            pid = cur.lastrowid
+        # 条款：先删后插（旧条款覆盖）
+        conn.execute('DELETE FROM policy_clauses WHERE policy_id=?', (pid,))
+        for ci, (ct, cc) in enumerate(p['clauses']):
+            conn.execute(
+                'INSERT INTO policy_clauses(policy_id, clause_type, content, sort_order) '
+                'VALUES(?,?,?,?)', (pid, ct, cc, ci),
+            )
+        n += 1
+    report['policies'] = {'rows': n, 'clauses': sum(len(p['clauses']) for p in policy_list)}
+
+
 # ---------- 入口 ----------
 
 _IMPORTERS = [
@@ -339,6 +405,7 @@ _IMPORTERS = [
     ('reserve', import_reserve),
     ('responsibility', import_responsibility),
     ('biz_info', import_biz_info),
+    ('policies', import_policies),
 ]
 
 
@@ -371,6 +438,8 @@ def run_import():
             'scenarios_reserve': db.q1(conn, "SELECT COUNT(*) c FROM scenarios WHERE source='储备库'")['c'],
             'projects': db.q1(conn, 'SELECT COUNT(*) c FROM projects')['c'],
             'enterprises_no_profile': db.q1(conn, 'SELECT COUNT(*) c FROM enterprises WHERE positioning IS NULL')['c'],
+            'policies': db.q1(conn, 'SELECT COUNT(*) c FROM policies')['c'],
+            'policy_clauses': db.q1(conn, 'SELECT COUNT(*) c FROM policy_clauses')['c'],
         }
     (config.DATA_DIR / 'last_import.json').write_text(
         json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
