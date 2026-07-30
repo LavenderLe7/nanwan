@@ -4,10 +4,10 @@
 
 <div class="card">
   <h2>新增账号</h2>
-  <form method="post" action="/gov/users/new" class="toolbar">
-    <input type="text" name="username" placeholder="账号" required>
-    <input type="text" name="display_name" placeholder="姓名/称呼">
-    <input type="password" name="password" placeholder="初始密码（≥6位）" required autocomplete="new-password">
+  <form method="post" action="/gov/users/new" class="toolbar" autocomplete="off">
+    <input type="text" name="username" placeholder="账号" required autocomplete="off">
+    <input type="text" name="display_name" placeholder="姓名/称呼" autocomplete="off">
+    <input type="text" name="password" placeholder="初始密码（≥6位）" required autocomplete="off">
     <select name="role">
       <option value="gov">政府端</option>
       <option value="enterprise">企业端</option>
@@ -39,8 +39,8 @@
           <button class="btn sm ghost" type="submit">{{ '停用' if u.active else '启用' }}</button>
         </form>
         {% endif %}
-        <form method="post" action="/gov/users/{{ u.id }}/reset" style="display:inline">
-          <input type="password" name="password" placeholder="新密码" style="width:90px" required autocomplete="new-password">
+        <form method="post" action="/gov/users/{{ u.id }}/reset" style="display:inline" autocomplete="off">
+          <input type="text" name="password" placeholder="新密码" style="width:90px" required autocomplete="off">
           <button class="btn sm ghost" type="submit">重置密码</button>
         </form>
         <form method="post" action="/gov/users/{{ u.id }}/delete" style="display:inline"
