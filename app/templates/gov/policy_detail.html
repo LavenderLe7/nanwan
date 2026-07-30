@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">{{ p.name }}
+  <span>
+    <a class="btn" href="/gov/policies/{{ p.id }}/edit">编辑政策</a>
+  </span>
+</div>
+
+<div class="card">
+  <h2>政策信息
+    <span class="badge">{{ p.level }}</span>
+    <span class="badge">{{ p.category }}</span>
+    <span class="badge {{ 'green' if p.status=='已发布' else 'gray' }}">{{ p.status }}</span>
+  </h2>
+  <dl class="kv">
+    <dt>扶持方式</dt><dd>{{ p.support_type }}</dd>
+    <dt>扶持金额</dt><dd>{{ p.amount_text or '—' }}</dd>
+    <dt>申报截止</dt><dd>{{ p.deadline or '—' }}</dd>
+    {% if p.source_url %}
+    <dt>原文链接</dt><dd><a href="{{ p.source_url }}" target="_blank">{{ p.source_url }}</a></dd>
+    {% endif %}
+  </dl>
+</div>
+
+<div class="card">
+  <h2>申报条款（{{ clauses|length }} 条）</h2>
+  {% if clauses %}
+  <table class="tbl">
+    <tr><th>#</th><th>类型</th><th>内容</th></tr>
+    {% for cl in clauses %}
+    <tr><td>{{ loop.index }}</td><td><span class="badge">{{ cl.clause_type }}</span></td><td>{{ cl.content }}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="muted">暂无条款，请编辑政策添加申报条件</p>{% endif %}
+</div>
+
+<div class="card">
+  <h2>匹配企业
+    {% if user.role=='admin' %}
+    <button class="btn ghost" onclick="policyRecompute({{ p.id }}, this)" style="margin-left:8px">重新匹配</button>
+    {% endif %}
+  </h2>
+  <div id="policy-match-rows">
+    {% include 'gov/_policy_match_results.html' %}
+  </div>
+</div>
+{% endblock %}
+{% block script %}
+<script>
+function policyRecompute(pid, btn) {
+  btn.disabled = true; btn.textContent = '匹配中…';
+  fetch('/gov/policies/' + pid + '/recompute', { method: 'POST' }).then(r => r.text()).then(h => {
+    document.getElementById('policy-match-rows').innerHTML = h;
+    btn.disabled = false; btn.textContent = '重新匹配';
+  });
+}
+async function policyMatchStatus(mid, status, btn) {
+  await fetch('/gov/api/policy-matches/' + mid + '/status', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'status=' + status
+  });
+  btn.closest('tr').querySelector('.pm-status').textContent = status;
+  if (status === '已排除') btn.closest('tr').style.opacity = 0.35;
+}
+</script>
+{% endblock %}

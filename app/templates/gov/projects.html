@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">项目跟踪
+  <button class="btn" onclick="document.getElementById('new-proj').style.display='block'">+ 新建项目</button>
+</div>
+
+<div class="card" id="new-proj" style="display:none">
+  <h2>新建项目</h2>
+  <form method="post" action="/gov/projects/new">
+    <div class="form-grid">
+      <label>企业</label>
+      <select name="enterprise_id">
+        {% for e in ents %}<option value="{{ e.id }}">{{ e.name }}</option>{% endfor %}
+      </select>
+      <label>项目/场景介绍</label><textarea name="title"></textarea>
+      <label>计划落地场景</label><input type="text" name="planned_scene">
+      <label>对接部门</label><input type="text" name="dock_dept">
+      <label>跟进人</label><input type="text" name="followers">
+      <label>推进情况</label><textarea name="progress"></textarea>
+    </div>
+    <div class="mt">
+      <button class="btn" type="submit">创建</button>
+      <button class="btn ghost" type="button" onclick="document.getElementById('new-proj').style.display='none'">收起</button>
+    </div>
+  </form>
+</div>
+
+<div class="kanban">
+  {% for status, cards in board.items() %}
+  <div class="kcol">
+    <h3>{{ status }}（{{ cards|length }}）</h3>
+    {% for p in cards %}
+    <div class="kcard">
+      <div class="t"><a href="/gov/projects/{{ p.id }}">{{ p.ent_name }}</a></div>
+      <div class="m">{{ (p.title or p.planned_scene or '')[:45] }}</div>
+      {% if p.scen_name %}<div class="m">场景：{{ p.scen_name }}</div>{% endif %}
+      <div class="m">跟进：{{ p.followers or '—' }}</div>
+      {% if p.progress %}<div class="m" title="{{ p.progress }}">最新：{{ p.progress[:30] }}</div>{% endif %}
+    </div>
+    {% endfor %}
+    {% if not cards %}<p class="muted" style="padding:4px">—</p>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

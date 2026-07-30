@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">工作台</div>
+
+{% if not semantic_ok %}
+<div class="notice">语义模型未就绪（{{ semantic_hint }}），当前匹配结果为规则匹配。
+安装模型后可获得语义匹配能力：<code>.venv/bin/python scripts/download_model.py</code></div>
+{% endif %}
+
+<div class="stat-grid">
+  <div class="stat"><div class="num">{{ stats.enterprises }}</div><div class="label">在库企业</div></div>
+  <div class="stat"><div class="num">{{ stats.scenes25 }}</div><div class="label">南湾25场景</div></div>
+  <div class="stat"><div class="num">{{ stats.scenes_reserve }}</div><div class="label">储备场景</div></div>
+  <div class="stat"><div class="num">{{ stats.policies }}</div><div class="label">惠企政策</div></div>
+  <div class="stat"><div class="num">{{ stats.projects_active }}</div><div class="label">在推项目</div></div>
+  <div class="stat"><div class="num">{{ stats.matched25 }}/{{ stats.scenes25 }}</div><div class="label">25场景匹配覆盖</div></div>
+  <div class="stat"><div class="num">{{ stats.pending_subs }}</div><div class="label">待审核提交</div></div>
+</div>
+
+<div class="row-flex" style="align-items:flex-start">
+  <div class="card" style="flex:1;min-width:340px">
+    <h2>最新项目进展</h2>
+    {% if recent_logs %}
+    <div class="timeline">
+      {% for l in recent_logs %}
+      <div class="ev">
+        <div><a href="/gov/projects/{{ l.project_id }}"><b>{{ l.ent_name }}</b></a>
+          <span class="muted"> · {{ l.title[:30] }}</span></div>
+        <div>{{ l.note[:80] }}</div>
+        <div class="when">{{ l.created_at }} · {{ l.created_by or '' }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}<p class="muted">暂无进展记录</p>{% endif %}
+  </div>
+
+  <div class="card" style="flex:1;min-width:340px">
+    <h2>待审核的企业提交</h2>
+    {% if pending %}
+    <table class="tbl">
+      <tr><th>企业</th><th>类型</th><th>提交时间</th><th></th></tr>
+      {% for s in pending %}
+      <tr>
+        <td>{{ s.ent_name }}</td><td><span class="badge amber">{{ s.type }}</span></td>
+        <td class="muted">{{ s.created_at }}</td>
+        <td><a class="btn sm ghost" href="/gov/submissions">去审核</a></td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="muted">没有待审核的提交</p>{% endif %}
+  </div>
+</div>
+{% endblock %}

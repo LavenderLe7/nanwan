@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">我的企业</div>
+
+<div class="card">
+  <h2>企业资料
+    <button class="btn sm ghost" onclick="var f=document.getElementById('edit-form');f.style.display=f.style.display=='none'?'block':'none'">申请修改资料</button>
+  </h2>
+  <dl class="kv">
+    {% for k in ['positioning','intro','main_business','capability','core_products','core_tech','applicable_scenes','qualifications','clients_cases'] %}
+    {% if e[k] %}<dt>{{ EL[k] }}</dt><dd>{{ e[k]|e|nl2br|safe }}</dd>{% endif %}
+    {% endfor %}
+  </dl>
+</div>
+
+<div class="card" id="edit-form" style="display:none">
+  <h2>提交资料修改（经街道审核后生效）</h2>
+  <form method="post" action="/ent/profile/submit">
+    <div class="form-grid">
+      {% for k, label in EL.items() if k != 'name' %}
+      <label>{{ label }}</label>
+      {% if k in LONG_E %}
+      <textarea name="{{ k }}" placeholder="不修改的字段留空">{{ '' }}</textarea>
+      {% else %}
+      <input type="text" name="{{ k }}" placeholder="不修改的字段留空">
+      {% endif %}
+      {% endfor %}
+    </div>
+    <div class="mt"><button class="btn" type="submit">提交审核</button></div>
+  </form>
+</div>
+
+{% if subs %}
+<div class="card">
+  <h2>最近提交</h2>
+  <table class="tbl">
+    <tr><th>时间</th><th>类型</th><th>状态</th></tr>
+    {% for s in subs %}
+    <tr><td class="muted">{{ s.created_at }}</td><td>{{ s.type }}</td>
+      <td><span class="badge {{ 'amber' if s.status=='待审核' else ('green' if s.status=='已通过' else 'red') }}">{{ s.status }}</span></td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+{% endblock %}

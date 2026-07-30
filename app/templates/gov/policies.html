@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">政策库
+  <a class="btn" href="/gov/policies/new">+ 新增政策</a>
+  {% if user.role=='admin' %}
+  <span><button class="btn ghost" onclick="policyRecomputeAll(this)">重新计算全部匹配</button></span>
+  {% endif %}
+</div>
+<div id="recompute-box"></div>
+<div class="card">
+  <form class="toolbar" method="get">
+    <input type="text" name="kw" value="{{ kw }}" placeholder="搜索政策名称" style="width:240px">
+    <select name="level">
+      <option value="">全部级别</option>
+      {% for v in ['国家级','省级','市级','区级','街道级'] %}
+      <option value="{{ v }}" {{ 'selected' if level==v }}>{{ v }}</option>
+      {% endfor %}
+    </select>
+    <select name="category">
+      <option value="">全部类别</option>
+      {% for v in ['资质认定','产业扶持','科技创新','财税金融'] %}
+      <option value="{{ v }}" {{ 'selected' if category==v }}>{{ v }}</option>
+      {% endfor %}
+    </select>
+    <select name="status">
+      <option value="">全部状态</option>
+      {% for v in ['已发布','已过期'] %}
+      <option value="{{ v }}" {{ 'selected' if status==v }}>{{ v }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn ghost" type="submit">筛选</button>
+    <span class="muted">共 {{ total }} 条</span>
+  </form>
+  <table class="tbl">
+    <tr><th>政策名称</th><th>级别</th><th>类别</th><th>扶持方式</th><th>截止日期</th><th>匹配企业</th><th>状态</th><th></th></tr>
+    {% for p in rows %}
+    <tr>
+      <td><a href="/gov/policies/{{ p.id }}"><b>{{ p.name }}</b></a></td>
+      <td><span class="badge">{{ p.level }}</span></td>
+      <td>{{ p.category }}</td>
+      <td>{{ p.support_type }}</td>
+      <td class="muted" style="white-space:nowrap">{{ p.deadline or '—' }}</td>
+      <td>{{ p.match_count or 0 }} 家</td>
+      <td><span class="badge {{ 'green' if p.status=='已发布' else 'gray' }}">{{ p.status }}</span></td>
+      <td style="white-space:nowrap">
+        <a class="btn sm ghost" href="/gov/policies/{{ p.id }}">查看</a>
+        <a class="btn sm ghost" href="/gov/policies/{{ p.id }}/edit">编辑</a>
+        <form method="post" action="/gov/policies/{{ p.id }}/delete" style="display:inline" onsubmit="return confirmDel('删除该政策及其条款和匹配数据？')">
+          <button class="btn sm ghost red">删除</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% if pages > 1 %}
+  <div class="pager">
+    {% for p in range(1, pages+1) %}
+      {% if p == page %}<b>[{{ p }}]</b>
+      {% else %}<a href="?kw={{ kw }}&level={{ level }}&category={{ category }}&status={{ status }}&page={{ p }}">{{ p }}</a>{% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block script %}
+<script>
+function policyRecomputeAll(btn) {
+  btn.disabled = true; btn.textContent = '重算中…';
+  fetch('/gov/policies/recompute-all', { method: 'POST' }).then(r => r.text()).then(h => {
+    document.getElementById('recompute-box').innerHTML = h;
+    btn.disabled = false; btn.textContent = '重新计算全部匹配';
+  });
+}
+</script>
+{% endblock %}

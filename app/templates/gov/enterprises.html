@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">企业库
+  <a class="btn" href="/gov/enterprises/new">+ 新增企业</a>
+</div>
+<div class="card">
+  <form class="toolbar" method="get">
+    <input type="text" name="kw" value="{{ kw }}" placeholder="搜索名称 / 简介 / 能力" style="width:260px">
+    <select name="bucket">
+      <option value="">全部类别</option>
+      {% for b in buckets %}
+      <option value="{{ b }}" {{ 'selected' if b==bucket }}>{{ b }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn ghost" type="submit">筛选</button>
+    <span class="muted">共 {{ total }} 家</span>
+  </form>
+  <table class="tbl">
+    <tr><th>企业名称</th><th>类别</th><th>场景能力</th><th>资质</th><th>更新时间</th><th></th></tr>
+    {% for e in rows %}
+    <tr>
+      <td><a href="/gov/enterprises/{{ e.id }}"><b>{{ e.name }}</b></a></td>
+      <td>{% if e.category_bucket %}<span class="badge">{{ e.category_bucket }}</span>{% endif %}</td>
+      <td class="clamp">{{ e.capability or '' }}</td>
+      <td class="clamp" style="max-width:180px">{{ e.qualifications or '' }}</td>
+      <td class="muted" style="white-space:nowrap">{{ e.updated_at[:10] if e.updated_at }}</td>
+      <td style="white-space:nowrap">
+        <a class="btn sm ghost" href="/gov/match?mode=enterprise#e{{ e.id }}">匹配场景</a>
+        <a class="btn sm ghost" href="/gov/enterprises/{{ e.id }}/edit">编辑</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% if pages > 1 %}
+  <div class="pager">
+    {% for p in range(1, pages+1) %}
+      {% if p == page %}<b>[{{ p }}]</b>
+      {% else %}<a href="?kw={{ kw }}&bucket={{ bucket }}&page={{ p }}">{{ p }}</a>{% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{# 匹配结果局部模板：工作台右侧区域（fetch 加载） #}
+{% if target %}
+<p style="margin-bottom:10px">
+  <b>{{ '场景' if mode=='scenario' else '企业' }}：</b>{{ target.name }}
+  <span class="muted">（共 {{ rows|length }} 条候选，按总分排序）</span>
+</p>
+{% endif %}
+{% if rows %}
+<table class="tbl">
+  <tr>
+    {% if mode == 'scenario' %}<th>企业</th><th>类别</th>
+    {% else %}<th>场景</th><th>来源</th><th>牵头部门</th>{% endif %}
+    <th style="width:170px">总分（语义/规则）</th><th>推荐理由</th><th>状态</th><th>操作</th>
+  </tr>
+  {% for m in rows %}
+  <tr>
+    {% if mode == 'scenario' %}
+    <td><a href="/gov/enterprises/{{ m.enterprise_id }}"><b>{{ m.ent_name }}</b></a>
+      <div class="reason">{{ (m.qualifications or '')[:30] }}</div></td>
+    <td><span class="badge gray">{{ m.category_bucket or '—' }}</span></td>
+    {% else %}
+    <td><a href="/gov/scenarios/{{ m.scenario_id }}"><b>{{ m.scen_name }}</b></a></td>
+    <td><span class="badge {{ 'green' if m.source=='南湾25' else 'gray' }}">{{ m.source }}</span></td>
+    <td>{{ m.lead_dept or '—' }}</td>
+    {% endif %}
+    <td>
+      <div class="score-bar"><i style="width: {{ ((m.total_score or 0) * 100)|round|int }}%"></i></div>
+      <span class="score-num">{{ '%.2f'|format(m.total_score or 0) }}</span>
+      <span class="reason">（{{ '%.2f'|format(m.semantic_score) if m.semantic_score is not none else '—' }}
+        / {{ '%.2f'|format(m.rule_score or 0) }}）</span>
+    </td>
+    <td class="reason">{{ m.reason }}</td>
+    <td class="mstatus"><span class="badge {{ 'green' if m.status=='已对接' else ('red' if m.status=='已排除' else 'gray') }}">{{ m.status }}</span></td>
+    <td style="white-space:nowrap">
+      {% if mode == 'scenario' %}
+      <button class="btn sm green" onclick="matchToProject({{ m.id }}, this)">转为项目</button>
+      <button class="btn sm ghost" onclick="matchStatus({{ m.id }}, '已排除', this)">排除</button>
+      {% else %}
+      <a class="btn sm ghost" href="/gov/scenarios/{{ m.scenario_id }}">查看场景</a>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="muted">该{{ '场景' if mode=='scenario' else '企业' }}暂无候选结果。试试“重新计算全部匹配”，或降低匹配门槛。</p>
+{% endif %}

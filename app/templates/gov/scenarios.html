@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">场景库
+  <a class="btn" href="/gov/scenarios/new">+ 新增场景</a>
+</div>
+<div class="card">
+  <div class="toolbar">
+    <a class="btn sm {{ '' if source=='南湾25' else 'ghost' }}" href="?source=南湾25">南湾25场景（{{ counts.get('南湾25', 0) }}）</a>
+    <a class="btn sm {{ '' if source=='储备库' else 'ghost' }}" href="?source=储备库">储备库（{{ counts.get('储备库', 0) }}）</a>
+  </div>
+  <form class="toolbar" method="get">
+    <input type="hidden" name="source" value="{{ source }}">
+    <input type="text" name="kw" value="{{ kw }}" placeholder="搜索名称 / 简介" style="width:240px">
+    <select name="domain">
+      <option value="">全部领域</option>
+      {% for d in domains %}
+      <option value="{{ d }}" {{ 'selected' if d==domain }}>{{ d }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn ghost" type="submit">筛选</button>
+    <span class="muted">共 {{ total }} 个</span>
+  </form>
+  <table class="tbl">
+    <tr><th>场景名称</th><th>应用领域</th><th>简介</th>
+      {% if source=='南湾25' %}<th>牵头部门</th><th>拟落地区域</th>{% else %}<th>主要技术</th>{% endif %}
+      <th>状态</th><th></th></tr>
+    {% for s in rows %}
+    <tr>
+      <td><a href="/gov/scenarios/{{ s.id }}"><b>{{ s.name }}</b></a></td>
+      <td><span class="badge">{{ s.domain }}</span></td>
+      <td class="clamp">{{ s.intro or '' }}</td>
+      {% if source=='南湾25' %}
+      <td>{{ s.lead_dept or '' }}</td><td>{{ s.landing_area or '' }}</td>
+      {% else %}
+      <td class="clamp" style="max-width:200px">{{ s.main_tech or '' }}</td>
+      {% endif %}
+      <td><span class="badge {{ 'green' if s.status=='已落地' else ('amber' if s.status=='在推' else 'gray') }}">{{ s.status }}</span></td>
+      <td style="white-space:nowrap">
+        <a class="btn sm ghost" href="/gov/match?mode=scenario#s{{ s.id }}">匹配企业</a>
+        <a class="btn sm ghost" href="/gov/scenarios/{{ s.id }}/edit">编辑</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% if pages > 1 %}
+  <div class="pager">
+    {% for p in range(1, pages+1) %}
+      {% if p == page %}<b>[{{ p }}]</b>
+      {% else %}<a href="?source={{ source }}&kw={{ kw }}&domain={{ domain }}&page={{ p }}">{{ p }}</a>{% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

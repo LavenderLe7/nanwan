@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">{{ '编辑政策' if p.id else '新增政策' }}</div>
+<div class="card">
+  <form method="post" action="{{ action }}" id="policyForm">
+    <div class="form-grid">
+      <label>政策名称</label>
+      <input type="text" name="name" value="{{ p.name or '' }}" required>
+      <label>级别</label>
+      <select name="level">
+        {% for v in ['国家级','省级','市级','区级','街道级'] %}
+        <option value="{{ v }}" {{ 'selected' if p.level==v }}>{{ v }}</option>
+        {% endfor %}
+      </select>
+      <label>类别</label>
+      <select name="category">
+        {% for v in ['资质认定','产业扶持','科技创新','财税金融'] %}
+        <option value="{{ v }}" {{ 'selected' if p.category==v }}>{{ v }}</option>
+        {% endfor %}
+      </select>
+      <label>扶持方式</label>
+      <select name="support_type">
+        {% for v in ['资金奖励','税收优惠','贷款贴息','租金补贴','保费补贴','担保费补贴'] %}
+        <option value="{{ v }}" {{ 'selected' if p.support_type==v }}>{{ v }}</option>
+        {% endfor %}
+      </select>
+      <label>扶持金额</label>
+      <input type="text" name="amount_text" value="{{ p.amount_text or '' }}">
+      <label>申报截止日期</label>
+      <input type="text" name="deadline" value="{{ p.deadline or '' }}" placeholder="YYYY-MM-DD 或 按年度批次 / 常年受理">
+      <label>原文链接</label>
+      <input type="text" name="source_url" value="{{ p.source_url or '' }}">
+      <label>状态</label>
+      <select name="status">
+        {% for v in ['已发布','已过期'] %}
+        <option value="{{ v }}" {{ 'selected' if p.status==v }}>{{ v }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <h2 style="margin-top:24px">申报条款</h2>
+    <div id="clause-list">
+      {% if clauses %}
+      {% for cl in clauses %}
+      <div class="clause-row" style="display:flex;gap:8px;margin-bottom:8px;align-items:flex-start">
+        <select name="clause_type_{{ loop.index0 }}" style="width:100px">
+          {% for v in ['资质','规模','行业','地域','信用'] %}
+          <option value="{{ v }}" {{ 'selected' if cl.clause_type==v }}>{{ v }}</option>
+          {% endfor %}
+        </select>
+        <textarea name="clause_content_{{ loop.index0 }}" style="flex:1" rows="2">{{ cl.content }}</textarea>
+        <button type="button" class="btn sm ghost red" onclick="this.closest('.clause-row').remove()">删除</button>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="clause-row" style="display:flex;gap:8px;margin-bottom:8px;align-items:flex-start">
+        <select name="clause_type_0" style="width:100px">
+          {% for v in ['资质','规模','行业','地域','信用'] %}
+          <option value="{{ v }}">{{ v }}</option>
+          {% endfor %}
+        </select>
+        <textarea name="clause_content_0" style="flex:1" rows="2"></textarea>
+        <button type="button" class="btn sm ghost red" onclick="this.closest('.clause-row').remove()">删除</button>
+      </div>
+      {% endif %}
+    </div>
+    <button type="button" class="btn ghost" onclick="addClauseRow()" style="margin-top:4px">+ 添加条款</button>
+
+    <div class="mt">
+      <button class="btn" type="submit">保存</button>
+      <a class="btn ghost" href="{{ '/gov/policies/%s'|format(p.id) if p.id else '/gov/policies' }}">取消</a>
+    </div>
+  </form>
+</div>
+{% if p.id %}
+<div class="card">
+  <h2>危险操作</h2>
+  <form method="post" action="/gov/policies/{{ p.id }}/delete" onsubmit="return confirmDel('删除该政策及其条款和匹配数据？')">
+    <button class="btn red" type="submit">删除该政策</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}
+{% block script %}
+<script>
+let clauseIdx = document.querySelectorAll('#clause-list .clause-row').length;
+function addClauseRow() {
+  const div = document.createElement('div');
+  div.className = 'clause-row';
+  div.style.cssText = 'display:flex;gap:8px;margin-bottom:8px;align-items:flex-start';
+  div.innerHTML =
+    '<select name="clause_type_' + clauseIdx + '" style="width:100px">' +
+    '{% for v in ["资质","规模","行业","地域","信用"] %}' +
+    '<option value="{{ v }}">{{ v }}</option>' +
+    '{% endfor %}' +
+    '</select>' +
+    '<textarea name="clause_content_' + clauseIdx + '" style="flex:1" rows="2"></textarea>' +
+    '<button type="button" class="btn sm ghost red" onclick="this.closest(\'.clause-row\').remove()">删除</button>';
+  document.getElementById('clause-list').appendChild(div);
+  clauseIdx++;
+}
+</script>
+{% endblock %}

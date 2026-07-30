@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">{{ '可申报政策' if mode=='policy' else '场景机会' }}
+  <span class="muted" style="font-size:13px;font-weight:normal">
+    {{ '系统根据本企业条件匹配的可申报惠企政策' if mode=='policy' else '系统根据本企业能力匹配的政府应用场景' }}
+  </span>
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <a class="btn sm {{ '' if mode=='scenario' else 'ghost' }}" href="?mode=scenario">场景机会</a>
+    <a class="btn sm {{ '' if mode=='policy' else 'ghost' }}" href="?mode=policy">可申报政策</a>
+  </div>
+
+  {% if mode == 'policy' %}
+    {% if policy_rows %}
+    <table class="tbl">
+      <tr><th>政策名称</th><th>级别</th><th>类别</th><th>扶持方式</th><th>金额</th><th>截止日期</th><th>匹配结果</th></tr>
+      {% for m in policy_rows %}
+      <tr>
+        <td><b>{{ m.policy_name }}</b></td>
+        <td><span class="badge">{{ m.level }}</span></td>
+        <td>{{ m.category }}</td>
+        <td>{{ m.support_type }}</td>
+        <td>{{ m.amount_text or '—' }}</td>
+        <td style="white-space:nowrap">{{ m.deadline or '—' }}</td>
+        <td class="reason" style="max-width:360px">{{ m.reason|e|replace('\n','<br>')|safe }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <p class="muted">暂无可申报政策。政策匹配结果由系统定期更新，请关注或联系街道工作人员。</p>
+    {% endif %}
+
+  {% else %}
+    {% if rows %}
+    <table class="tbl">
+      <tr><th>场景</th><th>来源</th><th>领域</th><th>拟落地区域</th><th>牵头部门</th><th>匹配度</th><th>对接状态</th><th></th></tr>
+      {% for m in rows %}
+      <tr>
+        <td><b>{{ m.scen_name }}</b><div class="reason">{{ (m.intro or '')[:50] }}</div></td>
+        <td><span class="badge {{ 'green' if m.source=='南湾25' else 'gray' }}">{{ m.source }}</span></td>
+        <td>{{ m.domain or '' }}</td>
+        <td>{{ m.landing_area or '—' }}</td>
+        <td>{{ m.lead_dept or '—' }}</td>
+        <td><div class="score-bar"><i style="width: {{ ((m.total_score or 0)*100)|round|int }}%"></i></div>
+          <span class="score-num">{{ '%.2f'|format(m.total_score or 0) }}</span></td>
+        <td><span class="badge {{ 'green' if m.status=='已对接' else 'gray' }}">{{ m.status }}</span></td>
+        <td>
+          <form method="post" action="/ent/opportunities/intent">
+            <input type="hidden" name="scenario_name" value="{{ m.scen_name }}">
+            <input type="text" name="message" placeholder="意向说明（可空）" style="width:120px">
+            <button class="btn sm" type="submit">申报意向</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <p class="muted">暂无匹配的场景机会。完善企业资料（场景能力、核心产品/技术）后可获得更准确的匹配。</p>
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

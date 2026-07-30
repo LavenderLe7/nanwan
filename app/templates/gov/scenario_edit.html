@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">{{ '编辑场景' if s.id else '新增场景' }}</div>
+<div class="card">
+  <form method="post" action="{{ action }}">
+    <div class="form-grid">
+      {% for k, label in SL.items() %}
+      <label>{{ label }}</label>
+      {% if k == 'source' %}
+      <select name="source">
+        {% for v in ['南湾25', '储备库'] %}
+        <option value="{{ v }}" {{ 'selected' if s.source==v }}>{{ v }}</option>
+        {% endfor %}
+      </select>
+      {% elif k == 'status' %}
+      <select name="status">
+        {% for v in ['储备', '在推', '已落地'] %}
+        <option value="{{ v }}" {{ 'selected' if s.status==v }}>{{ v }}</option>
+        {% endfor %}
+      </select>
+      {% elif k in LONG_S %}
+      <textarea name="{{ k }}">{{ s[k] or '' }}</textarea>
+      {% else %}
+      <input type="text" name="{{ k }}" value="{{ s[k] or '' }}">
+      {% endif %}
+      {% endfor %}
+    </div>
+    <div class="mt">
+      <button class="btn" type="submit">保存（保存后自动重算匹配）</button>
+      <a class="btn ghost" href="{{ '/gov/scenarios/%s'|format(s.id) if s.id else '/gov/scenarios' }}">取消</a>
+    </div>
+  </form>
+</div>
+{% if s.id %}
+<div class="card">
+  <h2>危险操作</h2>
+  <form method="post" action="/gov/scenarios/{{ s.id }}/delete" onsubmit="return confirmDel('删除该场景及其匹配数据？')">
+    <button class="btn red" type="submit">删除该场景</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">{{ '编辑企业' if e.id else '新增企业' }}</div>
+<div class="card">
+  <form method="post" action="{{ action }}">
+    <div class="form-grid">
+      {% for k, label in EL.items() %}
+      <label>{{ label }}</label>
+      {% if k in LONG_E %}
+      <textarea name="{{ k }}">{{ e[k] or '' }}</textarea>
+      {% else %}
+      <input type="text" name="{{ k }}" value="{{ e[k] or '' }}">
+      {% endif %}
+      {% endfor %}
+    </div>
+    <div class="mt">
+      <button class="btn" type="submit">保存（保存后自动重算匹配）</button>
+      <a class="btn ghost" href="{{ '/gov/enterprises/%s'|format(e.id) if e.id else '/gov/enterprises' }}">取消</a>
+    </div>
+  </form>
+</div>
+{% if e.id %}
+<div class="card">
+  <h2>危险操作</h2>
+  <form method="post" action="/gov/enterprises/{{ e.id }}/delete" onsubmit="return confirmDel('删除该企业及其项目、匹配数据？')">
+    <button class="btn red" type="submit">删除该企业</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

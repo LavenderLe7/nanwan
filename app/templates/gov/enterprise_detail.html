@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">{{ e.name }}
+  <span>
+    <a class="btn ghost" href="/gov/match?mode=enterprise#e{{ e.id }}">匹配场景</a>
+    <a class="btn ghost" href="/gov/match?mode=policy">匹配政策</a>
+    <a class="btn" href="/gov/enterprises/{{ e.id }}/edit">编辑档案</a>
+  </span>
+</div>
+
+<div class="card">
+  <h2>企业档案 {% if e.category_bucket %}<span class="badge">{{ e.category_bucket }}</span>{% endif %}
+    {% if e.category_raw %}<span class="badge gray">{{ e.category_raw }}</span>{% endif %}</h2>
+  <dl class="kv">
+    {% for k in ['positioning','intro','main_business','capability','core_products','core_tech','applicable_scenes','qualifications','clients_cases'] %}
+    {% if e[k] %}
+    <dt>{{ EL[k] }}</dt>
+    <dd>{{ e[k]|e|nl2br|safe }}</dd>
+    {% endif %}
+    {% endfor %}
+  </dl>
+</div>
+
+<div class="row-flex" style="align-items:flex-start">
+  <div class="card" style="flex:1;min-width:380px">
+    <h2>系统匹配的场景（Top {{ matches|length }}）</h2>
+    {% if matches %}
+    <table class="tbl">
+      <tr><th>场景</th><th>来源</th><th>总分</th><th>理由</th><th>状态</th></tr>
+      {% for m in matches %}
+      <tr>
+        <td><a href="/gov/scenarios/{{ m.scenario_id }}">{{ m.scen_name }}</a></td>
+        <td><span class="badge {{ 'green' if m.source=='南湾25' else 'gray' }}">{{ m.source }}</span></td>
+        <td><span class="score-num">{{ '%.2f'|format(m.total_score or 0) }}</span></td>
+        <td class="reason">{{ m.reason }}</td>
+        <td><span class="badge {{ 'green' if m.status=='已对接' else 'gray' }}">{{ m.status }}</span></td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="muted">暂无匹配结果（可在匹配工作台重新计算）</p>{% endif %}
+  </div>
+
+  <div class="card" style="flex:1;min-width:320px">
+    <h2>参与项目（{{ projects|length }}）</h2>
+    {% if projects %}
+      {% for p in projects %}
+      <div class="kcard">
+        <div class="t"><a href="/gov/projects/{{ p.id }}">{{ (p.title or p.planned_scene or '未命名项目')[:40] }}</a></div>
+        <div class="m">{{ p.dock_dept or '—' }} · 跟进：{{ p.followers or '—' }}</div>
+        <span class="badge {{ 'green' if p.status=='已落地' else ('amber' if p.status=='搁置' else '') }}">{{ p.status }}</span>
+      </div>
+      {% endfor %}
+    {% else %}<p class="muted">暂无项目</p>{% endif %}
+
+    {% if subs %}
+    <h2 class="mt">最近提交</h2>
+    {% for s in subs %}
+    <div class="m">{{ s.created_at }} · {{ s.type }} ·
+      <span class="badge {{ 'amber' if s.status=='待审核' else ('green' if s.status=='已通过' else 'red') }}">{{ s.status }}</span></div>
+    {% endfor %}
+    {% endif %}
+  </div>
+</div>
+
+{% if policy_matches %}
+<div class="card">
+  <h2>匹配的政策（{{ policy_matches|length }} 条）</h2>
+  <table class="tbl">
+    <tr><th>政策名称</th><th>级别</th><th>类别</th><th>扶持方式</th><th>金额</th><th>截止日期</th><th>匹配结果</th><th>状态</th></tr>
+    {% for m in policy_matches %}
+    <tr>
+      <td><a href="/gov/policies/{{ m.policy_id }}"><b>{{ m.policy_name }}</b></a></td>
+      <td><span class="badge">{{ m.level }}</span></td>
+      <td>{{ m.category }}</td>
+      <td>{{ m.support_type }}</td>
+      <td>{{ m.amount_text or '—' }}</td>
+      <td style="white-space:nowrap">{{ m.deadline or '—' }}</td>
+      <td class="reason" style="max-width:320px">{{ m.reason|e|replace('\n','<br>')|safe }}</td>
+      <td><span class="badge {{ 'green' if m.status=='已对接' else 'gray' }}">{{ m.status }}</span></td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+{% endblock %}

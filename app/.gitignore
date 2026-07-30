@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+data/nanwan.db
+data/secret.key
+data/last_import.json
+data/models/

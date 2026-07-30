@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}南湾街道政企供需匹配系统{% endblock %}</title>
+<link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">南湾街道政企供需匹配系统</div>
+  <nav>
+    {% if user and user.role in ('admin','gov') %}
+    <a href="/gov" class="{{ 'active' if active=='dash' }}">工作台</a>
+    <a href="/gov/enterprises" class="{{ 'active' if active=='ent' }}">企业库</a>
+    <a href="/gov/scenarios" class="{{ 'active' if active=='scen' }}">场景库</a>
+    <a href="/gov/match" class="{{ 'active' if active=='match' }}">匹配工作台</a>
+    <a href="/gov/policies" class="{{ 'active' if active=='policy' }}">政策库</a>
+    <a href="/gov/projects" class="{{ 'active' if active=='proj' }}">项目跟踪</a>
+    <a href="/gov/submissions" class="{{ 'active' if active=='subs' }}">审核中心</a>
+    {% if user.role=='admin' %}
+    <a href="/gov/lexicon" class="{{ 'active' if active=='lexicon' }}">词库</a>
+    <a href="/gov/import" class="{{ 'active' if active=='import' }}">数据管理</a>
+    <a href="/gov/users" class="{{ 'active' if active=='users' }}">用户管理</a>
+    {% endif %}
+    {% elif user and user.role=='enterprise' %}
+    <a href="/ent" class="{{ 'active' if active=='home' }}">我的企业</a>
+    <a href="/ent/opportunities" class="{{ 'active' if active=='opp' }}">场景机会</a>
+    <a href="/ent/submissions" class="{{ 'active' if active=='mysubs' }}">我的提交</a>
+    {% endif %}
+  </nav>
+  {% if user %}
+  <div class="who">{{ user.display_name }}（{{ {'admin':'管理员','gov':'政府端','enterprise':'企业端'}[user.role] }}）
+    <a href="/logout">退出</a>
+  </div>
+  {% endif %}
+</header>
+<main class="container">
+{% block content %}{% endblock %}
+</main>
+<script src="/static/js/app.js"></script>
+{% block script %}{% endblock %}
+</body>
+</html>

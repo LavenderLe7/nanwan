@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">项目详情
+  <a class="btn ghost" href="/gov/projects">← 返回看板</a>
+</div>
+
+<div class="row-flex" style="align-items:flex-start">
+  <div class="card" style="flex:1;min-width:380px">
+    <h2>{{ p.ent_name }}
+      <span class="badge {{ 'green' if p.status=='已落地' else ('amber' if p.status=='搁置' else '') }}">{{ p.status }}</span>
+    </h2>
+    <dl class="kv">
+      {% if p.title %}<dt>项目介绍</dt><dd>{{ p.title|e|nl2br|safe }}</dd>{% endif %}
+      {% if p.scen_name %}<dt>关联场景</dt><dd><a href="/gov/scenarios/{{ p.scenario_id }}">{{ p.scen_name }}</a></dd>{% endif %}
+      {% if p.planned_scene %}<dt>计划落地场景</dt><dd>{{ p.planned_scene }}</dd>{% endif %}
+      {% if p.dock_dept %}<dt>对接部门</dt><dd>{{ p.dock_dept }}</dd>{% endif %}
+      {% if p.followers %}<dt>跟进人</dt><dd>{{ p.followers }}</dd>{% endif %}
+      {% if p.progress %}<dt>推进情况</dt><dd>{{ p.progress|e|nl2br|safe }}</dd>{% endif %}
+      <dt>企业档案</dt><dd><a href="/gov/enterprises/{{ p.enterprise_id }}">查看企业</a></dd>
+    </dl>
+    <form class="mt" method="post" action="/gov/projects/{{ p.id }}/status">
+      <label class="muted">流转状态：</label>
+      {% for st in ['对接中', '推进中', '已落地', '搁置'] %}
+      <button class="btn sm {{ '' if p.status==st else 'ghost' }}" name="status" value="{{ st }}" type="submit">{{ st }}</button>
+      {% endfor %}
+    </form>
+  </div>
+
+  <div class="card" style="flex:1;min-width:340px">
+    <h2>进展时间线</h2>
+    <form method="post" action="/gov/projects/{{ p.id }}/logs" class="toolbar">
+      <input type="text" name="note" placeholder="记录一条新进展…" style="flex:1" required>
+      <button class="btn" type="submit">添加</button>
+    </form>
+    <div class="timeline">
+      {% for l in logs %}
+      <div class="ev">
+        <div>{{ l.note|e|nl2br|safe }}</div>
+        <div class="when">{{ l.created_at }} · {{ l.created_by or '' }}</div>
+      </div>
+      {% endfor %}
+      {% if not logs %}<p class="muted">暂无进展记录</p>{% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">用户管理</div>
+
+<div class="card">
+  <h2>新增账号</h2>
+  <form method="post" action="/gov/users/new" class="toolbar">
+    <input type="text" name="username" placeholder="账号" required>
+    <input type="text" name="display_name" placeholder="姓名/称呼">
+    <input type="password" name="password" placeholder="初始密码（≥6位）" required>
+    <select name="role">
+      <option value="gov">政府端</option>
+      <option value="enterprise">企业端</option>
+      <option value="admin">管理员</option>
+    </select>
+    <select name="enterprise_id">
+      <option value="0">（企业账号请选择关联企业）</option>
+      {% for e in ents %}<option value="{{ e.id }}">{{ e.name }}</option>{% endfor %}
+    </select>
+    <button class="btn" type="submit">创建</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>账号列表</h2>
+  <table class="tbl">
+    <tr><th>账号</th><th>姓名</th><th>角色</th><th>关联企业</th><th>状态</th><th>操作</th></tr>
+    {% for u in rows %}
+    <tr>
+      <td>{{ u.username }}</td>
+      <td>{{ u.display_name or '' }}</td>
+      <td><span class="badge {{ 'green' if u.role=='admin' else ('amber' if u.role=='enterprise' else '') }}">
+        {{ {'admin':'管理员','gov':'政府端','enterprise':'企业端'}[u.role] }}</span></td>
+      <td>{{ u.ent_name or '—' }}</td>
+      <td><span class="badge {{ 'green' if u.active else 'red' }}">{{ '启用' if u.active else '停用' }}</span></td>
+      <td style="white-space:nowrap">
+        {% if u.id != user.id %}
+        <form method="post" action="/gov/users/{{ u.id }}/toggle" style="display:inline">
+          <button class="btn sm ghost" type="submit">{{ '停用' if u.active else '启用' }}</button>
+        </form>
+        {% endif %}
+        <form method="post" action="/gov/users/{{ u.id }}/reset" style="display:inline">
+          <input type="password" name="password" placeholder="新密码" style="width:90px" required>
+          <button class="btn sm ghost" type="submit">重置密码</button>
+        </form>
+        <form method="post" action="/gov/users/{{ u.id }}/delete" style="display:inline"
+              onsubmit="return confirm('确定删除账号 {{ u.username }} 吗？此操作不可恢复。')">
+          <button class="btn sm ghost" style="color:#d93025" type="submit">删除</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

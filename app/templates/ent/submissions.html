@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">我的提交</div>
+<div class="card">
+  {% if rows %}
+  <table class="tbl">
+    <tr><th>时间</th><th>类型</th><th>内容</th><th>状态</th><th>审核意见</th></tr>
+    {% for s, payload in rows %}
+    <tr>
+      <td class="muted" style="white-space:nowrap">{{ s.created_at }}</td>
+      <td><span class="badge amber">{{ s.type }}</span></td>
+      <td>
+        {% for k, v in payload.items() %}
+          {% if v %}<div><b>{{ k }}：</b>{{ v[:80] }}</div>{% endif %}
+        {% endfor %}
+      </td>
+      <td><span class="badge {{ 'amber' if s.status=='待审核' else ('green' if s.status=='已通过' else 'red') }}">{{ s.status }}</span></td>
+      <td>{{ s.review_note or '—' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="muted">还没有提交记录</p>{% endif %}
+</div>
+{% endblock %}

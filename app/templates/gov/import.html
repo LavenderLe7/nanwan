@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">数据管理</div>
+
+<div class="card">
+  <h2>从源 Excel 导入</h2>
+  <p class="muted" style="margin-bottom:10px">
+    系统按文件序号前缀自动发现源文件（同前缀多版本时取<b>文件名日期最新</b>的一份）。
+    导入前会校验表头版型，<b>版型不符的文件会被拒绝并在报告中标红</b>，不会导错数据。
+    按自然键 upsert：重复导入不产生重复数据，系统内人工维护的状态字段不会被覆盖。导入后自动重算全部匹配。
+  </p>
+  <table class="tbl">
+    <tr><th>源</th><th>发现的文件</th><th>内容</th></tr>
+    {% for key, label in labels.items() %}
+    <tr>
+      <td>{{ label }}</td>
+      <td>{% if files[key] %}{{ files[key] }}{% else %}<span class="badge red">未找到</span>{% endif %}</td>
+      <td class="muted">{{ {'responsibility':'责任清单 → 项目跟踪','capability':'企业场景能力 → 企业库',
+        'scenarios25':'南湾25场景 → 场景库','reserve':'通用场景 → 储备库',
+        'profiles':'深度画像 → 企业库（合并）'}[key] }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <form method="post" class="mt" onsubmit="this.querySelector('button').textContent='导入中，请稍候…'">
+    <button class="btn" type="submit">立即导入并重算匹配</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>表格版型约定（更新源 Excel 前请对照）</h2>
+  <p class="muted" style="margin-bottom:10px">
+    <b>列的顺序必须与下表完全一致</b>（列名旁的序号即列位置）。以下内容系统自动处理，无需手工清理：
+    企业名括号后缀（如"（专精特新企业）"）、单元格内换行、空单元格、合并单元格。
+    另存新日期版本无需改名——系统按序号前缀取文件名日期最新的一份。
+  </p>
+  <table class="tbl">
+    <tr><th>源</th><th>期望列结构（按顺序）</th><th>特殊说明</th></tr>
+    {% for key, label in labels.items() %}
+    <tr>
+      <td style="white-space:nowrap">{{ label }}</td>
+      <td>
+        {% for h in headers[key] %}
+        <span class="badge gray">{{ loop.index }}.{{ h }}</span>
+        {% endfor %}
+      </td>
+      <td class="muted" style="font-size:12px">
+        {{ {'responsibility': '第1行为表格标题，表头在第2行；一企多项目时公司名只填首行，延续行留空即可',
+            'capability': '同一家企业有多条业务线时可登记多行，导入时自动合并为一家',
+            'scenarios25': '常规版型，表头在第1行',
+            'reserve': '常规版型，表头在第1行；与文件3重名的场景会自动互链',
+            'profiles': '常规版型，表头在第1行；按企业名归并到企业库'}[key] }}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+{% if report %}
+<div class="card">
+  <h2>{{ '本次导入报告' if done else '上次导入报告' }}</h2>
+  <table class="tbl">
+    <tr><th>项目</th><th>结果</th></tr>
+    {% for k, v in report.items() if k not in ('files', 'totals') %}
+    <tr>
+      <td>{{ labels.get(k, {'linked_scenarios':'重名场景互链'}.get(k, k)) }}</td>
+      <td>
+        {% if v is mapping and v.error %}
+          <span class="badge red">失败</span> {{ v.error }}
+        {% elif k == 'responsibility' %}
+          新项目 {{ v.projects_new }} · 新建企业档 {{ v.enterprises_created }} ·
+          计划落地场景未能关联场景库 {{ v.planned_scene_unmatched }} 处
+        {% elif k == 'linked_scenarios' %}
+          {{ v }}{% if v is number %} 对{% endif %}
+        {% else %}
+          处理 {{ v.rows }} 行（新增 {{ v.new }}，更新 {{ v.updated }}
+          {%- if v.merged_dupes %}，合并同企业多行 {{ v.merged_dupes }} 行{% endif %}）
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    <tr>
+      <td>库内总计</td>
+      <td>
+        企业 <b>{{ report.totals.enterprises }}</b> 家（其中缺画像 {{ report.totals.enterprises_no_profile }} 家）·
+        南湾25场景 <b>{{ report.totals.scenarios_25 }}</b> · 储备场景 <b>{{ report.totals.scenarios_reserve }}</b> ·
+        项目 <b>{{ report.totals.projects }}</b>
+      </td>
+    </tr>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

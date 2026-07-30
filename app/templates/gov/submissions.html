@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">审核中心</div>
+<div class="card">
+  <div class="toolbar">
+    {% for st in ['待审核', '已通过', '已驳回'] %}
+    <a class="btn sm {{ '' if status==st else 'ghost' }}" href="?status={{ st }}">{{ st }}</a>
+    {% endfor %}
+  </div>
+  {% if rows %}
+  <table class="tbl">
+    <tr><th>企业</th><th>类型</th><th>提交内容</th><th>提交时间</th>
+      {% if status != '待审核' %}<th>审核人/意见</th>{% else %}<th>操作</th>{% endif %}</tr>
+    {% for s, payload in rows %}
+    <tr>
+      <td><a href="/gov/enterprises/{{ s.enterprise_id }}">{{ s.ent_name }}</a></td>
+      <td><span class="badge amber">{{ s.type }}</span></td>
+      <td>
+        {% for k, v in payload.items() %}
+          <div><b>{{ k }}：</b>{{ v }}</div>
+        {% endfor %}
+      </td>
+      <td class="muted" style="white-space:nowrap">{{ s.created_at }}</td>
+      {% if status == '待审核' %}
+      <td style="white-space:nowrap">
+        <form method="post" action="/gov/submissions/{{ s.id }}/review" style="display:inline">
+          <input type="text" name="note" placeholder="审核意见（可空）" style="width:140px">
+          <button class="btn sm green" name="action" value="approve" type="submit">通过</button>
+          <button class="btn sm red" name="action" value="reject" type="submit">驳回</button>
+        </form>
+        {% if s.type == '资料修改' %}<div class="reason mt">通过后自动写入企业档案并重算匹配</div>{% endif %}
+      </td>
+      {% else %}
+      <td>{{ s.reviewed_by or '' }} {{ s.review_note or '' }}<br>
+        <span class="muted">{{ s.reviewed_at or '' }}</span></td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="muted">「{{ status }}」暂无记录</p>{% endif %}
+</div>
+{% endblock %}

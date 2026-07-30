@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">匹配工作台
+  {% if user.role=='admin' %}
+  <span>
+    <button class="btn ghost" onclick="recompute(this)">重新计算全部匹配</button>
+  </span>
+  {% endif %}
+</div>
+
+{% if not semantic_ok %}
+<div class="notice">语义模型未就绪（{{ semantic_hint }}），当前展示规则匹配结果；安装模型后点击“重新计算全部匹配”即可升级为语义+规则融合结果。</div>
+{% endif %}
+<div id="recompute-box"></div>
+
+<div class="card">
+  <div class="toolbar">
+    <a class="btn sm {{ '' if mode=='scenario' else 'ghost' }}" href="?mode=scenario">场景 → 找企业</a>
+    <a class="btn sm {{ '' if mode=='enterprise' else 'ghost' }}" href="?mode=enterprise">企业 → 找机会</a>
+    <a class="btn sm {{ '' if mode=='policy' else 'ghost' }}" href="?mode=policy">政策 → 找企业</a>
+  </div>
+  <div class="match-layout">
+    <div>
+      {% if mode == 'policy' %}
+      <select style="width:100%;margin-bottom:8px" onchange="policyMatchLoad(this.value)">
+        <option value="">— 选择一条政策 —</option>
+        {% for p in policy_list %}
+        <option value="{{ p.id }}">{{ p.name }} <span class="muted">[{{ p.category }}]</span></option>
+        {% endfor %}
+      </select>
+      {% else %}
+      <input type="text" placeholder="搜索…" style="width:100%;margin-bottom:8px"
+             oninput="matchFilter(this, 'pick-list')">
+      <div class="pick-list" id="pick-list">
+        {% if mode == 'scenario' %}
+          {% for s in scen_list %}
+          <a id="s{{ s.id }}" href="javascript:void(0)" onclick="matchLoad('scenario', {{ s.id }}, this)">
+            <b>{{ s.name }}</b> <span class="badge {{ 'green' if s.source=='南湾25' else 'gray' }}">{{ s.source }}</span>
+            <div class="reason">{{ s.domain }}</div>
+          </a>
+          {% endfor %}
+        {% else %}
+          {% for e in ent_list %}
+          <a id="e{{ e.id }}" href="javascript:void(0)" onclick="matchLoad('enterprise', {{ e.id }}, this)">
+            <b>{{ e.name }}</b>
+            <div class="reason">{{ e.category_bucket or '' }}</div>
+          </a>
+          {% endfor %}
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+    <div id="match-results">
+      <p class="muted">从左侧选择一个{{ '场景' if mode=='scenario' else ('企业' if mode=='enterprise' else '政策') }}，查看系统计算的候选{{ '企业' if mode=='scenario' or mode=='policy' else '场景' }}列表。</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block script %}
+<script>
+// 支持 URL 锚点直达（如 #s12 / #e34），从列表页跳转过来时自动选中
+(function () {
+  const h = location.hash.slice(1);
+  if (h) { const el = document.getElementById(h); if (el) el.click(); }
+})();
+function policyMatchLoad(pid) {
+  if (!pid) return;
+  const box = document.getElementById('match-results');
+  box.innerHTML = '<p class="muted">加载中…</p>';
+  fetch('/gov/api/policy-matches/' + pid).then(r => r.text()).then(h => { box.innerHTML = h; });
+}
+async function policyMatchStatus(mid, status, btn) {
+  await fetch('/gov/api/policy-matches/' + mid + '/status', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'status=' + status
+  });
+  btn.closest('tr').querySelector('.pm-status').textContent = status;
+  if (status === '已排除') btn.closest('tr').style.opacity = 0.35;
+}
+</script>
+{% endblock %}

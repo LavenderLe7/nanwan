@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>登录 · 南湾街道政企供需匹配系统</title>
+<link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+<div class="login-wrap">
+  <form class="login-card" method="post" action="/login">
+    <h1>南湾街道政企供需匹配系统</h1>
+    <div class="sub">企业能力 × 应用场景 · 供需对接平台</div>
+    {% if msg %}<div class="login-msg">{{ msg }}</div>{% endif %}
+    <input type="text" name="username" placeholder="账号" required autofocus>
+    <input type="password" name="password" placeholder="密码" required>
+    <button class="btn" type="submit">登 录</button>
+  </form>
+</div>
+</body>
+</html>

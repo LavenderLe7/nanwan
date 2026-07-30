@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">词库管理
+  <span class="badge {{ 'green' if source=='数据库自定义' else 'gray' }}">当前生效：{{ source }}</span>
+</div>
+
+<div class="notice">
+  领域词库用于规则匹配与推荐理由（<b>专属证据词</b>）。在某领域格子中加词后，
+  该领域场景会更精准地命中介绍里含此词的企业；泛词（如 监测/智能/自动化）请不要加入。
+  改动即时生效于下一次「重新计算全部匹配」（匹配工作台上操作）。类别映射与别名映射属结构配置，仍在
+  <code>matching/rules.py</code> 中维护。
+</div>
+
+<div class="card">
+  <h2>添加词条</h2>
+  <form method="post" action="/gov/lexicon/add" class="toolbar">
+    <select name="domain">
+      {% for d in lex.keys() %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
+    </select>
+    <input type="text" name="term" placeholder="新词条，如：二次供水" required>
+    <button class="btn" type="submit">添加到该领域</button>
+    <span class="muted">或</span>
+    <input type="text" name="new_domain" placeholder="新领域名（留空则用左侧所选）">
+  </form>
+  {% if source == '数据库自定义' %}
+  <form method="post" action="/gov/lexicon/reset" class="mt"
+        onsubmit="return confirmDel('恢复内置默认词库？你在页面上的全部自定义将丢弃。')">
+    <button class="btn red" type="submit">恢复内置默认词库</button>
+  </form>
+  {% else %}
+  <p class="muted mt">当前为内置默认词库。第一次在此页面上添加词条时，系统会把默认词库复制为可编辑的自定义版本。</p>
+  {% endif %}
+</div>
+
+{% for domain, terms in lex.items() %}
+<div class="card">
+  <h2>{{ domain }} <span class="badge gray">{{ terms|length }} 词</span></h2>
+  <div class="row-flex">
+    {% for t in terms %}
+    <form method="post" action="/gov/lexicon/delete" style="display:inline">
+      <input type="hidden" name="domain" value="{{ domain }}">
+      <input type="hidden" name="term" value="{{ t }}">
+      <button class="badge" type="submit" title="点击删除"
+              style="border:none;cursor:pointer;padding:4px 10px">{{ t }} ✕</button>
+    </form>
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
+
+{% if aliases %}
+<div class="card">
+  <h2>领域别名映射（只读，文件4 细粒度标签 → 词库领域）</h2>
+  <table class="tbl">
+    <tr><th>场景数据中的标签</th><th>归入词库领域</th></tr>
+    {% for k, v in aliases.items() %}
+    <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+{% endblock %}
