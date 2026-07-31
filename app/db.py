@@ -38,6 +38,12 @@ def init_db():
                 conn.execute(f'ALTER TABLE enterprises ADD COLUMN {col} {typ}')
             except Exception:
                 pass
+        # 外迁预警：enterprises 追加字段
+        for col, typ in [('relocation_risk', 'TEXT'), ('relocation_score', 'REAL DEFAULT 0')]:
+            try:
+                conn.execute(f'ALTER TABLE enterprises ADD COLUMN {col} {typ}')
+            except Exception:
+                pass
         cur = conn.execute('SELECT COUNT(*) AS c FROM users')
         if cur.fetchone()['c'] == 0:
             import auth

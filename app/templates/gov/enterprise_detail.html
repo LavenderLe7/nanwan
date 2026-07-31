@@ -82,4 +82,25 @@
   </table>
 </div>
 {% endif %}
+
+{% if reloc_warnings %}
+<div class="card">
+  <h2>外迁预警
+    {% set risk_color = {'挽留级':'#d93025','警示级':'#e37400','关注级':'#f9ab00'} %}
+    <span class="badge" style="background:{{ risk_color.get(e.relocation_risk,'#999') }};color:#fff">{{ e.relocation_risk }} · {{ '%.1f'|format(e.relocation_score or 0) }}分</span>
+  </h2>
+  <table class="tbl">
+    <tr><th>预警时间</th><th>预警类型</th><th>预警信息</th><th>行业</th><th>打分</th></tr>
+    {% for w in reloc_warnings %}
+    <tr>
+      <td style="white-space:nowrap">{{ w.warning_time or '' }}</td>
+      <td><span class="badge">{{ w.warning_type }}</span></td>
+      <td class="reason" style="max-width:360px">{{ w.warning_info or '' }}</td>
+      <td class="muted">{{ w.industry or '—' }}</td>
+      <td><span class="badge gray">{{ '%.1f'|format(w.warning_score or 0) }}</span></td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
 {% endblock %}

@@ -8,7 +8,7 @@ import auth
 import config
 import db
 from ingest import excel_import
-from matching import embed, engine
+from matching import embed, engine, relocation_rules
 from routers import policy
 from templating import templates
 
@@ -45,6 +45,9 @@ def dashboard(request: Request):
                 LEFT JOIN matches m ON m.scenario_id=s.id AND m.status!='已排除'
                 LEFT JOIN projects p ON p.scenario_id=s.id
                 WHERE s.source='南湾25' AND (m.id IS NOT NULL OR p.id IS NOT NULL)''')['c'],
+            'relocation_retain': db.q1(conn, "SELECT COUNT(*) c FROM enterprises WHERE relocation_risk='挽留级'")['c'],
+            'relocation_warn': db.q1(conn, "SELECT COUNT(*) c FROM enterprises WHERE relocation_risk='警示级'")['c'],
+            'relocation_watch': db.q1(conn, "SELECT COUNT(*) c FROM enterprises WHERE relocation_risk='关注级'")['c'],
         }
         recent_logs = db.q(conn, '''SELECT l.*, p.title, e.name AS ent_name FROM progress_logs l
             JOIN projects p ON p.id=l.project_id JOIN enterprises e ON e.id=p.enterprise_id
@@ -122,8 +125,11 @@ def enterprise_detail(request: Request, eid: int):
                ORDER BY pm.reason NOT LIKE '%不满足%' DESC, pm.id LIMIT 20''', (eid,))
         projects = db.q(conn, 'SELECT * FROM projects WHERE enterprise_id=? ORDER BY id DESC', (eid,))
         subs = db.q(conn, 'SELECT * FROM submissions WHERE enterprise_id=? ORDER BY id DESC LIMIT 5', (eid,))
+        reloc_warnings = db.q(conn,
+            'SELECT * FROM relocation_warnings WHERE enterprise_id=? ORDER BY warning_time DESC', (eid,))
     return templates.TemplateResponse(request, 'gov/enterprise_detail.html', {'user': user, 'e': e, 'matches': matches,
-        'policy_matches': policy_matches, 'projects': projects, 'subs': subs})
+        'policy_matches': policy_matches, 'projects': projects, 'subs': subs,
+        'reloc_warnings': reloc_warnings})
 
 
 @router.get('/enterprises/{eid}/edit')
@@ -593,3 +599,42 @@ def user_delete(request: Request, uid: int):
     with db.get_db() as conn:
         conn.execute('DELETE FROM users WHERE id=?', (uid,))
     return RedirectResponse('/gov/users', status_code=303)
+
+
+# ---------- 外迁预警 ----------
+
+@router.get('/relocation')
+def relocation(request: Request):
+    user = _u(request)
+    with db.get_db() as conn:
+        stats = {
+            'retain': db.q1(conn, "SELECT COUNT(*) c FROM enterprises WHERE relocation_risk='挽留级'")['c'],
+            'warn': db.q1(conn, "SELECT COUNT(*) c FROM enterprises WHERE relocation_risk='警示级'")['c'],
+            'watch': db.q1(conn, "SELECT COUNT(*) c FROM enterprises WHERE relocation_risk='关注级'")['c'],
+            'total_warnings': db.q1(conn, 'SELECT COUNT(*) c FROM relocation_warnings')['c'],
+            'matched': db.q1(conn, 'SELECT COUNT(DISTINCT enterprise_id) c FROM relocation_warnings WHERE enterprise_id IS NOT NULL')['c'],
+        }
+        groups = {}
+        for level in ('retain', 'warn', 'watch'):
+            label = {'retain': '挽留级', 'warn': '警示级', 'watch': '关注级'}[level]
+            rows = db.q(conn,
+                '''SELECT e.id, e.name, e.relocation_score,
+                   (SELECT COUNT(*) FROM relocation_warnings rw WHERE rw.enterprise_id=e.id) AS warn_count,
+                   (SELECT rw2.warning_type FROM relocation_warnings rw2 WHERE rw2.enterprise_id=e.id
+                    ORDER BY rw2.warning_score DESC LIMIT 1) AS top_type,
+                   (SELECT rw3.warning_time FROM relocation_warnings rw3 WHERE rw3.enterprise_id=e.id
+                    ORDER BY rw3.warning_time DESC LIMIT 1) AS latest_time
+                   FROM enterprises e WHERE e.relocation_risk=? ORDER BY e.relocation_score DESC''', (label,))
+            if rows:
+                groups[level] = rows
+    return templates.TemplateResponse(request, 'gov/relocation.html', {
+        'user': user, 'stats': stats, 'groups': groups, 'active': 'relocation',
+    })
+
+
+@router.post('/relocation/recompute')
+def relocation_recompute(request: Request):
+    user = _u(request)
+    with db.get_db() as conn:
+        relocation_rules.compute_all_risk_scores(conn)
+    return RedirectResponse('/gov/relocation', status_code=303)

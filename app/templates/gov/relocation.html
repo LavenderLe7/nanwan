@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">外迁预警
+  <span>
+    <form method="post" action="/gov/relocation/recompute" style="display:inline">
+      <button class="btn sm ghost" type="submit">重算风险等级</button>
+    </form>
+  </span>
+</div>
+
+<div class="stat-grid">
+  <div class="stat"><div class="num">{{ stats.retain or 0 }}</div><div class="label" style="color:#d93025">挽留级</div></div>
+  <div class="stat"><div class="num">{{ stats.warn or 0 }}</div><div class="label" style="color:#e37400">警示级</div></div>
+  <div class="stat"><div class="num">{{ stats.watch or 0 }}</div><div class="label" style="color:#f9ab00">关注级</div></div>
+  <div class="stat"><div class="num">{{ stats.total_warnings or 0 }}</div><div class="label">预警记录总数</div></div>
+  <div class="stat"><div class="num">{{ stats.matched or 0 }}</div><div class="label">已关联企业</div></div>
+</div>
+
+{% if groups.retain %}
+<div class="card">
+  <h2>挽留级（{{ groups.retain|length }} 家）</h2>
+  <table class="tbl">
+    <tr><th>企业名称</th><th>风险总分</th><th>预警数</th><th>最高风险类型</th><th>最近预警</th></tr>
+    {% for e in groups.retain %}
+    <tr>
+      <td><a href="/gov/enterprises/{{ e.id }}"><b>{{ e.name }}</b></a></td>
+      <td><span class="badge" style="background:#d93025;color:#fff">{{ '%.1f'|format(e.relocation_score or 0) }}</span></td>
+      <td>{{ e.warn_count }}</td>
+      <td>{{ e.top_type or '' }}</td>
+      <td class="muted">{{ e.latest_time or '' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+{% if groups.warn %}
+<div class="card">
+  <h2>警示级（{{ groups.warn|length }} 家）</h2>
+  <table class="tbl">
+    <tr><th>企业名称</th><th>风险总分</th><th>预警数</th><th>最高风险类型</th><th>最近预警</th></tr>
+    {% for e in groups.warn %}
+    <tr>
+      <td><a href="/gov/enterprises/{{ e.id }}"><b>{{ e.name }}</b></a></td>
+      <td><span class="badge" style="background:#e37400;color:#fff">{{ '%.1f'|format(e.relocation_score or 0) }}</span></td>
+      <td>{{ e.warn_count }}</td>
+      <td>{{ e.top_type or '' }}</td>
+      <td class="muted">{{ e.latest_time or '' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+{% if groups.watch %}
+<div class="card">
+  <h2>关注级（{{ groups.watch|length }} 家）</h2>
+  <table class="tbl">
+    <tr><th>企业名称</th><th>风险总分</th><th>预警数</th><th>最高风险类型</th><th>最近预警</th></tr>
+    {% for e in groups.watch %}
+    <tr>
+      <td><a href="/gov/enterprises/{{ e.id }}"><b>{{ e.name }}</b></a></td>
+      <td><span class="badge" style="background:#f9ab00;color:#fff">{{ '%.1f'|format(e.relocation_score or 0) }}</span></td>
+      <td>{{ e.warn_count }}</td>
+      <td>{{ e.top_type or '' }}</td>
+      <td class="muted">{{ e.latest_time or '' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+{% if not groups.retain and not groups.warn and not groups.watch %}
+<div class="card"><p class="muted">暂无外迁预警数据。请在「数据管理」中导入外迁预警清单。</p></div>
+{% endif %}
+{% endblock %}

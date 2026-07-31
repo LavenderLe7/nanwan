@@ -27,6 +27,7 @@ FILE_PREFIXES = {
     'profiles': '5 ',
     'biz_info': '6 ',
     'policies': '7 ',
+    'relocation': '8 ',
 }
 EXPECTED_HEADERS = {
     'responsibility': ['序号', '公司名称', '企业与产品简介', '场景能力', '类别',
@@ -37,12 +38,15 @@ EXPECTED_HEADERS = {
     'profiles': ['企业名称', '核心定位', '主营业务', '核心产品', '核心技术', '资质与荣誉', '典型客户/案例'],
     'biz_info': ['企业名称', '注册资本（万元）', '员工人数', '近一年营收（万元）', '经营异常'],
     'policies': ['序号', '政策名称', '级别', '类别', '扶持方式', '扶持金额', '申报截止日期', '条款类型', '条款内容', '来源链接'],
+    'relocation': ['企业名称', '预警类型', '预警信息', '预警时间', '预计产能流向省-市-区',
+                   '风险等级', '应用场景', '所属行业', '所在街道', '重点企业标签'],
 }
 FILE_LABELS = {
     'responsibility': '文件1 责任清单', 'capability': '文件2 能力清单',
     'scenarios25': '文件3 南湾25场景', 'reserve': '文件4 储备库', 'profiles': '文件5 深度画像',
     'biz_info': '文件6 企业工商信息',
     'policies': '文件7 惠企政策种子数据',
+    'relocation': '文件8 外迁预警清单',
 }
 
 
@@ -396,6 +400,52 @@ def import_policies(conn, report, path):
     report['policies'] = {'rows': n, 'clauses': sum(len(p['clauses']) for p in policy_list)}
 
 
+def import_relocation(conn, report, path):
+    """文件8：外迁预警清单 → relocation_warnings（全量替换）。按企业名关联 enterprises 表。"""
+    rows = _read_rows(path, 'relocation')
+    # 全量替换：清空旧数据
+    conn.execute('DELETE FROM relocation_warnings')
+    n, matched = 0, 0
+    for r in rows:
+        if not r or not r[0]:
+            continue
+        name = (r[0] or '').strip()
+        if not name:
+            continue
+        # 关联企业
+        eid = None
+        nn = norm_name(name)
+        if nn:
+            ent = db.q1(conn, 'SELECT id FROM enterprises WHERE name_norm=?', (nn,))
+            if ent:
+                eid = ent['id']
+                matched += 1
+        # 解析流向
+        flow = (r[4] or '').split('-')
+        fp = flow[0].strip() if len(flow) > 0 else ''
+        fc = flow[1].strip() if len(flow) > 1 else ''
+        fd = flow[2].strip() if len(flow) > 2 else ''
+        # 时间处理
+        wt = r[3]
+        if hasattr(wt, 'strftime'):
+            wt = wt.strftime('%Y-%m-%d')
+        conn.execute(
+            'INSERT INTO relocation_warnings(enterprise_id, enterprise_name, warning_type, '
+            'warning_info, warning_time, risk_level_original, '
+            'flow_province, flow_city, flow_district, '
+            'app_scene, industry, street, tags) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
+            (eid, name, (r[1] or '').strip(), (r[2] or '').strip(), wt,
+             (r[5] or '').strip(),
+             fp, fc, fd, (r[6] or '').strip(), (r[7] or '').strip(),
+             (r[8] or '').strip(), (r[9] or '').strip()),
+        )
+        n += 1
+    # 重算全部风险等级
+    from matching import relocation_rules
+    updated = relocation_rules.compute_all_risk_scores(conn)
+    report['relocation'] = {'rows': n, 'matched': matched, 'risk_updated': updated}
+
+
 # ---------- 入口 ----------
 
 _IMPORTERS = [
@@ -406,6 +456,7 @@ _IMPORTERS = [
     ('responsibility', import_responsibility),
     ('biz_info', import_biz_info),
     ('policies', import_policies),
+    ('relocation', import_relocation),
 ]
 
 
@@ -440,6 +491,8 @@ def run_import():
             'enterprises_no_profile': db.q1(conn, 'SELECT COUNT(*) c FROM enterprises WHERE positioning IS NULL')['c'],
             'policies': db.q1(conn, 'SELECT COUNT(*) c FROM policies')['c'],
             'policy_clauses': db.q1(conn, 'SELECT COUNT(*) c FROM policy_clauses')['c'],
+            'relocation_warnings': db.q1(conn, 'SELECT COUNT(*) c FROM relocation_warnings')['c'],
+            'relocation_risk_enterprises': db.q1(conn, 'SELECT COUNT(*) c FROM enterprises WHERE relocation_risk IS NOT NULL')['c'],
         }
     (config.DATA_DIR / 'last_import.json').write_text(
         json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')

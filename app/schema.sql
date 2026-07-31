@@ -155,6 +155,29 @@ CREATE TABLE IF NOT EXISTS policy_matches (
 CREATE INDEX IF NOT EXISTS idx_policy_matches_policy ON policy_matches(policy_id);
 CREATE INDEX IF NOT EXISTS idx_policy_matches_enterprise ON policy_matches(enterprise_id);
 
+-- 外迁预警
+CREATE TABLE IF NOT EXISTS relocation_warnings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  enterprise_id INTEGER REFERENCES enterprises(id),
+  enterprise_name TEXT NOT NULL,
+  warning_type TEXT NOT NULL,        -- 异地投资/租赁临期/限制高消费/...
+  warning_info TEXT,                 -- 预警详情文本
+  warning_time TEXT,                 -- 预警时间
+  risk_level_original TEXT,          -- 原始风险等级（数据源标注的高/中/低）
+  flow_province TEXT,                -- 产能流向-省
+  flow_city TEXT,                    -- 产能流向-市
+  flow_district TEXT,                -- 产能流向-区
+  app_scene TEXT,                    -- 外迁监控/经营监控
+  industry TEXT,                     -- 所属行业
+  street TEXT,                       -- 所在街道
+  tags TEXT,                         -- 重点企业标签
+  warning_score REAL DEFAULT 0,      -- 系统打分
+  created_at TEXT DEFAULT (datetime('now','localtime'))
+);
+
+-- ALTER TABLE enterprises ADD COLUMN relocation_risk TEXT;          -- 见 db.py init_db()
+-- ALTER TABLE enterprises ADD COLUMN relocation_score REAL DEFAULT 0;  -- 见 db.py init_db()
+
 CREATE INDEX IF NOT EXISTS idx_matches_scenario ON matches(scenario_id, total_score DESC);
 CREATE INDEX IF NOT EXISTS idx_matches_enterprise ON matches(enterprise_id, total_score DESC);
 CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
