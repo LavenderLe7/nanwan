@@ -1,8 +1,0 @@
-# 语义匹配依赖（P2，体积较大，单独安装）
-# 本机为 Intel Mac (x86_64)：PyTorch 新版不再发布 x86_64 mac 轮子，最后可用版本为 2.2.2，
-# 而 torch 2.2 仅支持 Python ≤3.12 → venv 必须用 python3.11 创建。
-# torch 2.2 与 numpy 2.x 不兼容，需固定 numpy<2。
-torch==2.2.2
-numpy<2
-sentence-transformers>=3.0,<4
-modelscope>=1.20
